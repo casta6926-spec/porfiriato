@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Mental Interactivo: El Porfiriato (1876-1911)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #faf9f6;
+            background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+        .serif-title {
+            font-family: 'Cinzel', serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Pulse Animation for interactive nodes */
+        @keyframes subtle-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+        .node-interactive:hover {
+            animation: subtle-pulse 1.5s infinite ease-in-out;
+        }
+        
+        .ai-tab-active {
+            border-bottom: 3px solid #b45309;
+            color: #b45309;
+            font-weight: 700;
+        }
+        .chat-bubble-user {
+            background-color: #f3f4f6;
+            color: #1f2937;
+            border-bottom-right-radius: 2px;
+        }
+        .chat-bubble-ai {
+            background-color: #fef3c7;
+            color: #78350f;
+            border-bottom-left-radius: 2px;
+            border: 1px solid #fde68a;
+        }
+        .pulse-audio {
+            animation: pulse-ring 1.25s cubic-bezier(0.215, 0.610, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.5; }
+            100% { transform: scale(0.95); opacity: 1; }
+        }
+        /* Keyframes and custom animations */
+        @keyframes bounceIn {
+            0% { transform: translate(-50%, 20px); opacity: 0; }
+            100% { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .animate-bounce-in {
+            animation: bounceIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 15s linear infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+    <!-- Header/Navigation Bar -->
+    <header class="w-full bg-white/80 backdrop-blur border-b border-slate-200 py-4 px-6 md:px-12 flex flex-col sm:flex-row justify-between items-center gap-4 z-40 sticky top-0">
+        <div class="flex items-center gap-3">
+            <span class="text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                <i class="fa-solid fa-compass-drafting text-xl"></i>
+            </span>
+            <div>
+                <h1 class="serif-title font-bold text-slate-850 text-lg md:text-xl leading-none">El Porfiriato</h1>
+                <p class="text-xs text-slate-500 font-medium">Mapa Mental Interactivo e Histórico (1876-1911) • Con Asistente IA</p>
+            </div>
+        </div>
+        
+        <!-- Interactive Controls -->
+        <div class="flex items-center gap-2 flex-wrap">
+            <button id="btn-api-key" onclick="toggleApiKeyModal()" class="px-3 py-1.5 text-xs font-semibold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition flex items-center gap-1">
+                <i class="fa-solid fa-key"></i> <span id="api-key-status">Gemini IA Auténtica</span>
+            </button>
+            <button id="btn-reset" onclick="resetView()" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                <i class="fa-solid fa-rotate-left mr-1"></i> Reiniciar
+            </button>
+            <button id="btn-present" onclick="startPresentation()" class="px-4 py-1.5 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-950 rounded-lg shadow-sm transition flex items-center gap-1.5">
+                <i class="fa-solid fa-play"></i> Presentación Guiada
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Canvas Area -->
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 py-8 relative">
+        
+        <!-- Presentation HUD overlay -->
+        <div id="presentation-hud" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-50 border border-slate-700 max-w-md w-11/12 animate-bounce-in">
+            <div class="flex-grow">
+                <p class="text-[10px] text-amber-400 font-bold tracking-widest uppercase">Paso <span id="pres-step-num">1</span> de 11</p>
+                <h4 id="pres-step-title" class="font-bold text-sm text-slate-100">Cargando...</h4>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button onclick="prevStep()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs transition">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <button onclick="nextStep()" class="p-2 bg-amber-500 hover:bg-amber-600 rounded-lg text-xs text-slate-950 font-bold transition flex items-center gap-1">
+                    Sig. <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <button onclick="stopPresentation()" class="p-2 hover:bg-red-900/30 text-red-400 rounded-lg text-xs transition" title="Salir">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Connection SVG Canvas Layer (lines drawn here) -->
+        <svg id="connections-svg" class="absolute inset-0 w-full h-full pointer-events-none z-0" style="min-height: 850px;"></svg>
+
+        <!-- Interactive Map Grid Container -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-y-12 lg:gap-x-4 relative z-10 items-center justify-center min-h-[680px]">
+            
+            <!-- LEFT WING: POLÍTICA (BLUE BRANCH) -->
+            <div class="lg:col-span-4 flex flex-col gap-6 items-end justify-center">
+                <!-- Political Main Branch Node -->
+                <div id="branch-political" onclick="openDetails('political')" class="node-interactive cursor-pointer bg-white border-2 border-blue-500 hover:bg-blue-50/35 p-5 rounded-2xl shadow-md w-full max-w-sm transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg flex items-center gap-4 border-l-[12px]">
+                    <div class="w-12 h-12 rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0 text-xl shadow-inner">
+                        <i class="fa-solid fa-gavel"></i>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold text-blue-600 tracking-wider uppercase">Rama 1</span>
+                        <h3 class="font-extrabold text-slate-850 text-base">Estructura Política</h3>
+                        <p class="text-xs text-slate-500">Centralización y control absoluto estatal</p>
+                    </div>
+                </div>
+
+                <!-- Political Sub-nodes Column -->
+                <div class="flex flex-col gap-4 w-11/12 max-w-xs">
+                    <!-- Dictadura -->
+                    <div id="sub-dictadura" onclick="openDetails('dictadura')" class="node-interactive cursor-pointer bg-white border border-blue-200 hover:border-blue-400 p-4 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0 text-sm">
+                            <i class="fa-solid fa-crown"></i>
+                        </span>
+                        <div>
+                            <h4 class="font-bold text-sm text-slate-800">Dictadura</h4>
+                            <p class="text-[11px] text-slate-500">Sistemática reelección y control total</p>
+                        </div>
+                    </div>
+                    <!-- Orden y Progreso -->
+                    <div id="sub-orden" onclick="openDetails('orden')" class="node-interactive cursor-pointer bg-white border border-blue-200 hover:border-blue-400 p-4 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0 text-sm">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </span>
+                        <div>
+                            <h4 class="font-bold text-sm text-slate-800">Orden y Progreso</h4>
+                            <p class="text-[11px] text-slate-500">Paz forzada y control policial</p>
+                        </div>
+                    </div>
+                    <!-- Los Científicos -->
+                    <div id="sub-cientificos" onclick="openDetails('cientificos')" class="node-interactive cursor-pointer bg-white border border-blue-200 hover:border-blue-400 p-4 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shrink-0 text-sm">
+                            <i class="fa-solid fa-brain"></i>
+                        </span>
+                        <div>
+                            <h4 class="font-bold text-sm text-slate-800">Los Científicos</h4>
+                            <p class="text-[11px] text-slate-500">Gabinete e ideólogos positivistas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CENTER AXIS: PORFIRIATO CENTRAL HUB -->
+            <div class="lg:col-span-4 flex flex-col items-center justify-center gap-12 py-6">
+                <!-- Main Central Node -->
+                <div id="center-hub" class="relative group">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-amber-600 to-amber-800 rounded-full blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
+                    <div onclick="openDetails('hub')" class="node-interactive relative cursor-pointer bg-white border-4 border-amber-700 w-64 h-64 rounded-full flex flex-col justify-center items-center text-center p-6 shadow-xl transition-all duration-300 hover:scale-105">
+                        
+                        <!-- Vintage Train SVG Graphic -->
+                        <div class="w-20 h-20 mb-3 flex items-center justify-center text-amber-800">
+                            <svg viewBox="0 0 100 100" class="w-16 h-16 fill-current">
+                                <!-- Locomotive Vintage Silhouette -->
+                                <path d="M15,65 L25,65 C25,60 29,56 34,56 C39,56 43,60 43,65 L57,65 C57,60 61,56 66,56 C71,56 75,60 75,65 L85,65 L85,55 L80,55 L75,40 L45,40 L45,35 L55,35 L55,30 L40,30 L40,40 L25,40 L25,45 L15,45 Z" />
+                                <circle cx="34" cy="65" r="5" />
+                                <circle cx="66" cy="65" r="5" />
+                                <rect x="28" y="22" width="6" height="15" />
+                                <path d="M10,48 L15,45 L15,58 L10,55 Z" />
+                                <path d="M48,25 Q52,15 60,18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+                                <path d="M52,22 Q58,12 68,16" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.6"/>
+                            </svg>
+                        </div>
+                        
+                        <span class="text-[10px] font-bold tracking-widest text-amber-800 uppercase">Eje Central</span>
+                        <h2 class="serif-title font-extrabold text-slate-900 text-lg leading-tight mt-1">EL PORFIRIATO</h2>
+                        <span class="text-xs font-semibold bg-amber-50 text-amber-800 px-2.5 py-0.5 rounded-full border border-amber-200 mt-1">1876 - 1911</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT WING: ECONOMÍA & SOCIAL (GREEN & RED BRANCHES) -->
+            <div class="lg:col-span-4 flex flex-col gap-12 justify-center items-start">
+                
+                <!-- GREEN BRANCH: ECONOMÍA -->
+                <div class="flex flex-col gap-4 w-full">
+                    <!-- Economic Main Branch Node -->
+                    <div id="branch-economic" onclick="openDetails('economic')" class="node-interactive cursor-pointer bg-white border-2 border-emerald-500 hover:bg-emerald-50/35 p-5 rounded-2xl shadow-md w-full max-w-sm transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg flex items-center gap-4 border-l-[12px]">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 text-xl shadow-inner">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold text-emerald-600 tracking-wider uppercase">Rama 2</span>
+                            <h3 class="font-extrabold text-slate-850 text-base">Estructura Económica</h3>
+                            <p class="text-xs text-slate-500">Crecimiento, capital extranjero y vías</p>
+                        </div>
+                    </div>
+
+                    <!-- Economic Sub-nodes -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3 w-11/12 max-w-xs pl-0 lg:pl-6">
+                        <!-- Inversión Extranjera -->
+                        <div id="sub-inversion" onclick="openDetails('inversion')" class="node-interactive cursor-pointer bg-white border border-emerald-200 hover:border-emerald-400 p-3.5 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0 text-sm">
+                                <i class="fa-solid fa-money-bill-trend-up"></i>
+                            </span>
+                            <div>
+                                <h4 class="font-bold text-xs text-slate-800">Inversión Extranjera</h4>
+                                <p class="text-[10px] text-slate-500">Capitales de EE.UU. y Europa</p>
+                            </div>
+                        </div>
+                        <!-- Red Ferroviaria -->
+                        <div id="sub-ferroviaria" onclick="openDetails('ferroviaria')" class="node-interactive cursor-pointer bg-white border border-emerald-200 hover:border-emerald-400 p-3.5 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0 text-sm">
+                                <i class="fa-solid fa-train-subway"></i>
+                            </span>
+                            <div>
+                                <h4 class="font-bold text-xs text-slate-800">Red Ferroviaria</h4>
+                                <p class="text-[10px] text-slate-500">Más de 20,000 km de vías</p>
+                            </div>
+                        </div>
+                        <!-- Modernización -->
+                        <div id="sub-modernizacion" onclick="openDetails('modernizacion')" class="node-interactive cursor-pointer bg-white border border-emerald-200 hover:border-emerald-400 p-3.5 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0 text-sm">
+                                <i class="fa-solid fa-lightbulb"></i>
+                            </span>
+                            <div>
+                                <h4 class="font-bold text-xs text-slate-800">Modernización</h4>
+                                <p class="text-[10px] text-slate-500">Electricidad, telégrafos y puertos</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RED/CORAL BRANCH: SOCIAL -->
+                <div class="flex flex-col gap-4 w-full">
+                    <!-- Social Main Branch Node -->
+                    <div id="branch-social" onclick="openDetails('social')" class="node-interactive cursor-pointer bg-white border-2 border-rose-500 hover:bg-rose-50/35 p-5 rounded-2xl shadow-md w-full max-w-sm transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg flex items-center gap-4 border-l-[12px]">
+                        <div class="w-12 h-12 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 text-xl shadow-inner">
+                            <i class="fa-solid fa-users-viewfinder"></i>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold text-rose-600 tracking-wider uppercase">Rama 3</span>
+                            <h3 class="font-extrabold text-slate-850 text-base">Estructura Social</h3>
+                            <p class="text-xs text-slate-500">Latifundios, explotación y opresión</p>
+                        </div>
+                    </div>
+
+                    <!-- Social Sub-nodes -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3 w-11/12 max-w-xs pl-0 lg:pl-6">
+                        <!-- Haciendas -->
+                        <div id="sub-haciendas" onclick="openDetails('haciendas')" class="node-interactive cursor-pointer bg-white border border-rose-200 hover:border-rose-400 p-3.5 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center shrink-0 text-sm">
+                                <i class="fa-solid fa-wheat-awn"></i>
+                            </span>
+                            <div>
+                                <h4 class="font-bold text-xs text-slate-800">Haciendas</h4>
+                                <p class="text-[10px] text-slate-500">Concentración masiva de tierras</p>
+                            </div>
+                        </div>
+                        <!-- Tiendas de Raya -->
+                        <div id="sub-raya" onclick="openDetails('raya')" class="node-interactive cursor-pointer bg-white border border-rose-200 hover:border-rose-400 p-3.5 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center shrink-0 text-sm">
+                                <i class="fa-solid fa-handshake-simple-slash"></i>
+                            </span>
+                            <div>
+                                <h4 class="font-bold text-xs text-slate-800">Tiendas de Raya</h4>
+                                <p class="text-[10px] text-slate-500">Deudas forzadas de por vida</p>
+                            </div>
+                        </div>
+                        <!-- Desigualdad -->
+                        <div id="sub-desigualdad" onclick="openDetails('desigualdad')" class="node-interactive cursor-pointer bg-white border border-rose-200 hover:border-rose-400 p-3.5 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center shrink-0 text-sm">
+                                <i class="fa-solid fa-scale-unbalanced-flip"></i>
+                            </span>
+                            <div>
+                                <h4 class="font-bold text-xs text-slate-800">Desigualdad</h4>
+                                <p class="text-[10px] text-slate-500">Brecha extrema social y explotación</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- BOTTOM SECTION: FINAL CONVERGENCE BOX -->
+        <div class="mt-16 mb-6 flex justify-center relative z-20">
+            <div id="conclusion-box" onclick="openDetails('conclusion')" class="node-interactive cursor-pointer max-w-2xl bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 hover:border-amber-500 p-6 rounded-2xl shadow-xl transition-all duration-300 hover:scale-[1.02] text-center text-white">
+                <span class="text-[10px] font-bold text-amber-400 tracking-widest uppercase">Síntesis e Impacto Histórico</span>
+                <h3 class="serif-title font-bold text-lg md:text-xl text-slate-100 mt-1 mb-2">Influencia en la Modernización</h3>
+                <p class="text-sm text-slate-300 font-light leading-relaxed">
+                    Cimientos de infraestructura y crecimiento económico macroeconómico, pero detonante ineludible de la <strong class="text-amber-300">Revolución de 1910</strong> debido a la implacable desigualdad, descontento social y cerrazón política.
+                </p>
+                <div class="inline-flex items-center gap-1.5 text-xs text-amber-400 mt-4 hover:underline">
+                    Ver análisis histórico detallado <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- INTERACTIVE SLIDE DRAWER (EDUCATIONAL DETAILS PANEL) -->
+    <div id="slide-drawer" class="fixed top-0 right-0 h-full w-full sm:w-[500px] bg-white shadow-2xl translate-x-full transition-transform duration-300 ease-in-out z-50 flex flex-col border-l border-slate-200">
+        <!-- Drawer Header -->
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <div class="flex items-center gap-2">
+                <span id="drawer-badge" class="px-2 py-0.5 text-[9px] font-bold rounded-md tracking-wider uppercase bg-blue-100 text-blue-850">Cargando</span>
+                <h3 class="font-extrabold text-sm text-slate-500">Historiografía del Porfiriato</h3>
+            </div>
+            <button onclick="closeDrawer()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 bg-white border border-slate-200 rounded-lg transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- AI and History Navigation Tabs -->
+        <div class="flex border-b border-slate-100 bg-slate-50/50 text-xs shrink-0">
+            <button onclick="switchAiTab('details')" id="tab-btn-details" class="flex-1 py-3 text-center font-semibold text-slate-600 hover:text-slate-900 border-b-2 border-transparent transition ai-tab-active">
+                <i class="fa-solid fa-book-bookmark mr-1"></i> Análisis
+            </button>
+            <button onclick="switchAiTab('chat')" id="tab-btn-chat" class="flex-1 py-3 text-center font-semibold text-slate-600 hover:text-slate-900 border-b-2 border-transparent transition">
+                <i class="fa-solid fa-comments mr-1"></i> Pregunta al Historiador (IA)
+            </button>
+            <button onclick="switchAiTab('quiz')" id="tab-btn-quiz" class="flex-1 py-3 text-center font-semibold text-slate-600 hover:text-slate-900 border-b-2 border-transparent transition">
+                <i class="fa-solid fa-circle-question mr-1"></i> Reto Quiz (IA)
+            </button>
+        </div>
+        
+        <!-- Drawer Content Areas -->
+        <div class="flex-grow overflow-y-auto p-6 flex flex-col gap-6" id="drawer-content-pane">
+            
+            <!-- TAB 1: STATIC DETAILS CONTENT -->
+            <div id="pane-details" class="flex flex-col gap-6">
+                <!-- AI Quick Tools Panel -->
+                <div class="flex flex-wrap gap-2 items-center justify-between bg-amber-50/50 border border-amber-100 p-3 rounded-xl">
+                    <span class="text-[10px] text-amber-800 font-bold uppercase"><i class="fa-solid fa-wand-magic-sparkles"></i> Herramientas de IA:</span>
+                    <div class="flex gap-2">
+                        <button onclick="speakDescription()" id="btn-narrate" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1" title="Escuchar narración usando Inteligencia Artificial">
+                            <i id="narrate-icon" class="fa-solid fa-volume-high"></i> <span id="narrate-text">Narrar</span>
+                        </button>
+                        <button onclick="generatePostalArt()" id="btn-postal" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1" title="Generar un grabado vintage con IA">
+                            <i id="postal-icon" class="fa-solid fa-image"></i> Generar Arte
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <h2 id="drawer-title" class="serif-title font-black text-2xl text-slate-900 mb-1 leading-tight">Estructura Política</h2>
+                    <p id="drawer-subtitle" class="text-sm font-semibold text-slate-500">Orden, centralización y autoritarismo</p>
+                </div>
+
+                <!-- Focus quote panel -->
+                <div id="drawer-quote-box" class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl">
+                    <p id="drawer-quote" class="italic text-xs text-amber-900 font-medium">"Poca política, mucha administración."</p>
+                    <span id="drawer-quote-author" class="block text-[10px] text-amber-700 mt-2 font-bold uppercase">— Slogan Político de la Época</span>
+                </div>
+
+                <!-- Core educational content -->
+                <div class="flex flex-col gap-4">
+                    <h4 class="font-bold text-xs text-slate-400 uppercase tracking-wider">Análisis Crítico</h4>
+                    <p id="drawer-description" class="text-slate-700 text-sm leading-relaxed">
+                        Explicación pedagógica de este concepto sobre la era de Porfirio Díaz.
+                    </p>
+                </div>
+
+                <!-- Bullet details -->
+                <div class="flex flex-col gap-3">
+                    <h4 class="font-bold text-xs text-slate-400 uppercase tracking-wider">Conceptos y Consecuencias Clave</h4>
+                    <ul id="drawer-bullets" class="flex flex-col gap-2">
+                        <li class="flex items-start gap-2 text-xs text-slate-600">
+                            <span class="text-emerald-500 mt-0.5"><i class="fa-regular fa-circle-check"></i></span>
+                            <span>Detalle educativo número uno.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- TAB 2: AI HISTORIAN CHAT -->
+            <div id="pane-chat" class="hidden flex flex-col h-full gap-4">
+                <div class="bg-slate-50 border border-slate-150 p-3 rounded-xl text-xs text-slate-600">
+                    <i class="fa-solid fa-circle-info text-amber-600 mr-1"></i> Habla con el <strong>Historiador IA</strong>. Te responderá cualquier duda educativa sobre el tema seleccionado con bases del Porfiriato.
+                </div>
+                <!-- Message Log Container -->
+                <div id="chat-messages" class="flex-grow overflow-y-auto space-y-4 max-h-[350px] pr-1 border-b border-slate-100 pb-4">
+                    <div class="flex gap-2.5 items-start">
+                        <div class="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold">IA</div>
+                        <div class="chat-bubble-ai p-3 rounded-xl text-xs max-w-[85%] leading-relaxed">
+                            ¡Saludos! Soy tu asesor histórico interactivo. ¿Tienes alguna pregunta en particular sobre <strong id="chat-topic-highlight">este tema</strong> del Porfiriato? Pregúntame con confianza.
+                        </div>
+                    </div>
+                </div>
+                <!-- Input Box -->
+                <div class="flex gap-2">
+                    <input type="text" id="chat-input" onkeydown="handleChatKey(event)" placeholder="Ej. ¿Qué papel jugaban los Científicos?" class="flex-grow text-xs border border-slate-300 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <button onclick="sendChatMessage()" class="p-2.5 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-sm transition" title="Enviar Mensaje">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 3: DYNAMIC AI QUIZ CHALLENGE -->
+            <div id="pane-quiz" class="hidden flex flex-col gap-5">
+                <div class="bg-indigo-50 border border-indigo-150 p-4 rounded-xl text-xs text-indigo-950 flex flex-col gap-2">
+                    <span class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-circle-question"></i> Auto-evaluación Interactiva</span>
+                    <span>Genera un reactivo dinámico de opción múltiple apoyado en la IA para evaluar tus conocimientos sobre esta rama del Porfiriato.</span>
+                </div>
+                
+                <div id="quiz-loading-spinner" class="hidden text-center py-10">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent mb-2"></div>
+                    <p class="text-xs text-slate-500 font-semibold">Planteando desafío mediante Gemini...</p>
+                </div>
+
+                <div id="quiz-question-container" class="hidden flex flex-col gap-4">
+                    <div class="p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+                        <span class="text-[10px] uppercase font-bold text-indigo-600 tracking-wider">Pregunta:</span>
+                        <p id="quiz-question-text" class="text-sm font-bold text-slate-800 mt-1 leading-normal"></p>
+                    </div>
+
+                    <div id="quiz-options-container" class="flex flex-col gap-2">
+                        <!-- Option buttons are dynamically created -->
+                    </div>
+
+                    <div id="quiz-feedback" class="hidden p-4 rounded-xl text-xs leading-relaxed">
+                        <!-- Explanation shows here -->
+                    </div>
+                </div>
+
+                <button onclick="generateAiQuiz()" id="btn-quiz-generator" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-arrows-rotate animate-spin-slow"></i> Generar Nueva Pregunta sobre <span id="quiz-btn-topic">el Tema</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Drawer Footer -->
+        <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-400 shrink-0">
+            <span>Material Didáctico de Historia</span>
+            <span class="font-medium text-slate-600">México Independiente</span>
+        </div>
+    </div>
+
+    <!-- BACKDROP FOR DRAWER -->
+    <div id="drawer-backdrop" onclick="closeDrawer()" class="hidden fixed inset-0 bg-slate-950/20 backdrop-blur-sm z-40 transition-opacity"></div>
+
+    <!-- API KEY SETTING MODAL -->
+    <div id="modal-api-key" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-bounce-in">
+            <div class="p-6 border-b border-slate-150 flex items-center justify-between bg-slate-50">
+                <h3 class="serif-title font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-amber-600"></i> Autenticación de IA</h3>
+                <button onclick="toggleApiKeyModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 flex flex-col gap-4">
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Nuestras funciones de IA funcionan de manera nativa y gratuita a través del motor integrado de Canvas. Si deseas configurar una llave propia personalizada (API Key de Google AI Studio) para uso fuera de este espacio, puedes guardarla aquí:
+                </p>
+                <input type="password" id="input-api-key" placeholder="AIzaSy..." class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <div class="flex gap-2 mt-2">
+                    <button onclick="saveApiKey()" class="flex-1 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-xs font-bold transition">Guardar Llave</button>
+                    <button onclick="clearApiKey()" class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition">Borrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ARTWORK VIEWER MODAL (IMAGEN 4.0 RESULTS) -->
+    <div id="modal-artwork" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md">
+        <div class="bg-amber-50 border-4 border-amber-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-amber-800/20 bg-amber-900 text-amber-100 flex items-center justify-between">
+                <h3 class="serif-title font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-palette text-amber-400"></i> Grabado de Época Generado por IA</h3>
+                <button onclick="toggleArtworkModal()" class="text-amber-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 flex flex-col items-center gap-4 text-center">
+                <p id="art-prompt-info" class="text-xs text-amber-900/80 italic font-medium"></p>
+                <!-- Image Wrapper with Vintage Frame style -->
+                <div class="relative p-3 bg-amber-100 border-2 border-amber-900/40 rounded-lg shadow-inner max-w-full w-[350px] aspect-square flex items-center justify-center">
+                    <div id="artwork-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-amber-50/90 z-10">
+                        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-amber-800 border-t-transparent mb-2"></div>
+                        <p class="text-xs font-bold text-amber-900">Ilustrando escena con Imagen 4.0...</p>
+                    </div>
+                    <img id="generated-artwork" src="" alt="Arte Histórico" class="hidden rounded border border-amber-900/20 w-full h-full object-cover">
+                </div>
+                <div class="flex gap-2 w-full mt-2">
+                    <button id="btn-download-art" onclick="downloadGeneratedArt()" disabled class="flex-1 py-2.5 bg-amber-900 hover:bg-amber-950 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed">
+                        <i class="fa-solid fa-download"></i> Descargar Grabado
+                    </button>
+                    <button onclick="toggleArtworkModal()" class="py-2.5 px-4 bg-amber-200/50 hover:bg-amber-200 text-amber-950 rounded-xl text-xs font-bold transition">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Credit -->
+    <footer class="w-full bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+        <p class="font-semibold text-slate-600 mb-1">Estrategias de Aprendizaje • Historia de México</p>
+        <p>Prepa en Línea-SEP • Elaborado por Angel Adrian Castañón Lira</p>
+    </footer>
+
+    <script>
+        // HISTORICAL CONTENT DATA BANK
+        const historyData = {
+            hub: {
+                badge: "Eje Central",
+                badgeClass: "bg-amber-100 text-amber-800",
+                title: "EL PORFIRIATO (1876-1911)",
+                subtitle: "La hegemonía y la consolidación del Estado Mexicano",
+                quote: "«México es un pueblo con un gran futuro y una inmensa riqueza, pero que requiere de orden militar para no recaer en la anarquía constante.»",
+                quoteAuthor: "Historiografía de Porfirio Díaz",
+                description: "El Porfiriato define el periodo de más de 30 años en que el general Porfirio Díaz gobernó México. Tras levantarse bajo el lema de la 'No Reelección' contra Lerdo de Tejada en 1876, concentró las riendas del poder para forjar un régimen dictatorial de estabilidad y progreso económico a nivel internacional, con un altísimo precio social en represión y desigualdad.",
+                bullets: [
+                    "<strong>Consolidación del Estado:</strong> Centralización total del poder político, debilitando los poderes regionales y el federalismo.",
+                    "<strong>Modernización Acelerada:</strong> Atracción sin precedentes de inversiones extranjeras, expandiendo transportes e industria pesada.",
+                    "<strong>Cerrazón Democrática:</strong> Eliminación paulatina de la libre prensa, la pluralidad de partidos políticos y elecciones genuinas."
+                ]
+            },
+            political: {
+                badge: "Estructura Política",
+                badgeClass: "bg-blue-100 text-blue-800",
+                title: "Estructura Política",
+                subtitle: "Paz, centralización del poder y orden forzado",
+                quote: "«Poca política y mucha administración.»",
+                quoteAuthor: "Porfirio Díaz",
+                description: "La estructura política del régimen se caracterizó por una centralización implacable donde todas las decisiones trascendentales pasaban directa o indirectamente por el Presidente. Díaz logró pacificar un país desgarrado por revoluciones civiles previas aplicando mano dura y asimilando o eliminando opositores mediante un sofisticado sistema de incentivos y coerción.",
+                bullets: [
+                    "<strong>Pacificación Nacional:</strong> Estabilización del país tras décadas de sangrientos levantamientos internos armados.",
+                    "<strong>Poder Ejecutivo Fuerte:</strong> Subordinación del Congreso y del Poder Judicial Federal a las consignas del Palacio Nacional.",
+                    "<strong>Mecanismo de Control:</strong> Uso estratégico del Ejército Nacional y del cuerpo de 'Rurales' para contener de raíz revueltas agrarias y obreras."
+                ]
+            },
+            dictadura: {
+                badge: "Política",
+                badgeClass: "bg-blue-100 text-blue-800",
+                title: "La Dictadura Porfirista",
+                subtitle: "Reelección sistemática y represión",
+                quote: "«...es un error creer que el pueblo se levantará solo. Necesita de un orden que guíe sus primeros pasos democráticos.»",
+                quoteAuthor: "Entrevista Díaz-Creelman (1908)",
+                description: "A pesar de haber comenzado su carrera nacional levantándose contra la reelección de Juárez y Lerdo, Porfirio Díaz enmendó la Constitución repetidas veces para extender legalmente su mandato presidencial. La dictadura eliminó virtualmente la competencia electoral mediante la manipulación directa de comicios a nivel municipal, estatal y federal.",
+                bullets: [
+                    "<strong>Reelecciones Consecutivas:</strong> Consolidó periodos de gobierno ininterrumpidos de 1884 a 1911, alterando sistemáticamente la Carta Magna.",
+                    "<strong>Monopolio del Poder:</strong> Eliminación de partidos de oposición legítimos y persecución del periodismo crítico (como el periódico Regeneración de los hermanos Flores Magón).",
+                    "<strong>Uso de la Fuerza Pública:</strong> Sofocamiento represivo ante la menor muestra de rebelión, célebre en la frase atribuida de 'mátalos en caliente'."
+                ]
+            },
+            orden: {
+                badge: "Política",
+                badgeClass: "bg-blue-100 text-blue-800",
+                title: "Orden y Progreso",
+                subtitle: "Lema de control positivista y paz forzada",
+                quote: "«Mano firme para garantizar la inversión; orden absoluto para garantizar el crecimiento.»",
+                quoteAuthor: "Consigna Intelectual del Régimen",
+                description: "La célebre frase 'Orden y Progreso' (derivada del positivismo de Auguste Comte) fue la espina dorsal ideológica del Porfiriato. Argumentaba que el crecimiento económico y la industrialización eran imposibles en un país sumido en el desorden. Para el régimen, la 'paz porfiriana' justificaba cualquier medida autoritaria encaminada a estabilizar el territorio.",
+                bullets: [
+                    "<strong>El Positivismo en México:</strong> Corriente de pensamiento que priorizaba el empirismo, el método científico y el progreso pragmático por encima de las libertades humanas abstractas.",
+                    "<strong>Paz Porfiriana:</strong> Pacificación lograda mediante el desarme forzoso de bandidos rurales e indios rebeldes (como las campañas brutales contra Yaquis y Mayas).",
+                    "<strong>Atracción de Capitales:</strong> La paz social decretada por el gobierno funcionó como el imán principal para la banca europea y estadounidense."
+                ]
+            },
+            cientificos: {
+                badge: "Política",
+                badgeClass: "bg-blue-100 text-blue-800",
+                title: "Los Científicos",
+                subtitle: "El gabinete de tecnócratas e intelectuales",
+                quote: "«La dirección de los asuntos públicos debe estar en manos de las mentes más preparadas e inteligentes.»",
+                quoteAuthor: "Justo Sierra",
+                description: "Constituyeron una influyente élite intelectual y burocrática encabezada por figuras como Limantour y Justo Sierra. Consideraban que la administración nacional debía regirse por criterios técnicos rigurosos y principios científicos pragmáticos, desestimando la participación democrática del pueblo, al cual consideraban inmaduro para el autogobierno.",
+                bullets: [
+                    "<strong>Políticas Financieras Eficientes:</strong> Manejo pulcro de la hacienda pública por José Yves Limantour, logrando el primer superávit de la historia mexicana.",
+                    "<strong>Justificación del Régimen:</strong> Legitimaron el autoritarismo de Díaz al plantearlo como una 'dictadura benévola e ilustrada' indispensable.",
+                    "<strong>Desprecio por lo Indígena:</strong> Concepción eurocentrista y racista que veía a las comunidades originarias como una fuerza de trabajo atrasada que debía ser civilizada."
+                ]
+            },
+            economic: {
+                badge: "Estructura Económica",
+                badgeClass: "bg-emerald-100 text-emerald-800",
+                title: "Estructura Económica",
+                subtitle: "Inserción de México en el capitalismo global",
+                quote: "«La inversión extranjera es el motor indispensable para extraer la inmensa riqueza de nuestro suelo.»",
+                quoteAuthor: "Secretaría de Hacienda (1893)",
+                description: "Bajo la dirección del grupo de 'Los Científicos', México experimentó un auge económico excepcional. Se modernizaron las finanzas públicas, se saldaron deudas históricas con el exterior y se crearon leyes comerciales e industriales de vanguardia. La minería, el petróleo, el tabaco y los monocultivos de exportación se convirtieron en las industrias líderes.",
+                bullets: [
+                    "<strong>Estabilidad Financiera:</strong> Reestructuración de la deuda externa y adopción exitosa del patrón oro.",
+                    "<strong>Exportación Agrícola e Industrial:</strong> El país se posicionó como un líder global en exportación de plata, henequén, café, hule y cobre.",
+                    "<strong>Infraestructura Logística:</strong> Reconstrucción total de los puertos de Veracruz, Tampico y Salina Cruz."
+                ]
+            },
+            inversion: {
+                badge: "Economía",
+                badgeClass: "bg-emerald-100 text-emerald-800",
+                title: "Inversión Extranjera",
+                subtitle: "Entrega de recursos estratégicos a consorcios globales",
+                quote: "«México, la madre de los extranjeros y la madrastra de los mexicanos.»",
+                quoteAuthor: "Dicho popular porfirista",
+                description: "Para dinamizar la economía nacional, el régimen otorgó inmensas facilidades y concesiones fiscales de largo plazo al capital extranjero. Consorcios procedentes de Estados Unidos, Gran Bretaña y Francia adquirieron el dominio de los sectores clave: ferrocarriles, minas de cobre y oro, pozos petrolíferos y la incipiente red telefónica.",
+                bullets: [
+                    "<strong>Consorcios Dominantes:</strong> Empresas como la Standard Oil o Pearson & Son controlaban concesiones estratégicas de petróleo y minería de cobre en Cananea y El Boleo.",
+                    "<strong>Tratamiento Preferencial:</strong> Leyes de minería y aguas sumamente laxas que permitían la explotación ilimitada sin pago significativo de regalías estatales.",
+                    "<strong>Despojo Comunitario:</strong> Muchas de las tierras entregadas a empresas deslindadoras extranjeras pertenecían legítimamente a pueblos indígenas desposeídos."
+                ]
+            },
+            ferroviaria: {
+                badge: "Economía",
+                badgeClass: "bg-emerald-100 text-emerald-800",
+                title: "La Red Ferroviaria",
+                subtitle: "Las venas de acero del progreso económico",
+                quote: "«El silbato de la locomotora es el canto que anuncia el despertar civilizado de nuestra nación.»",
+                quoteAuthor: "Prensa Oficial del Porfiriato",
+                description: "El ferrocarril constituyó el logro tecnológico de infraestructura más icónico de la era. Durante el Porfiriato, la red creció de escasos 600 kilómetros a más de 20,000 kilómetros. Conectó los principales centros de producción agrícola y minera directamente con los puertos de exportación y la frontera norte de los Estados Unidos.",
+                bullets: [
+                    "<strong>Integración de Mercados:</strong> Logró unificar por primera vez en la historia de México un mercado nacional coherente, abaratando sustancialmente el transporte terrestre.",
+                    "<strong>Movilidad de Tropas:</strong> Permitió al régimen porfirista despachar contingentes del ejército en cuestión de horas a cualquier rincón para sofocar rebeliones locales.",
+                    "<strong>Cimiento Industrial:</strong> Fomentó directamente el crecimiento siderúrgico y minero nacional por la demanda masiva de carbón y rieles."
+                ]
+            },
+            modernizacion: {
+                badge: "Economía",
+                badgeClass: "bg-emerald-100 text-emerald-800",
+                title: "Modernización",
+                subtitle: "Electricidad, comunicaciones y urbanismo afrancesado",
+                quote: "«Queremos un México que sea visto a la par de las grandes capitales europeas.»",
+                quoteAuthor: "Comisión del Centenario de la Independencia",
+                description: "La modernización porfirista redefinió la fisonomía del país. Se introdujo el alumbrado eléctrico en las grandes urbes, se expandieron líneas de telégrafo que enlazaban el territorio de forma inmediata y se levantaron magnas obras públicas de corte neoclásico y afrancesado en la Ciudad de México y cabeceras estatales.",
+                bullets: [
+                    "<strong>Telecomunicaciones:</strong> Integración de miles de kilómetros de telégrafo y los primeros conmutadores de telefonía.",
+                    "<strong>Grandes Monumentos Históricos:</strong> Construcción del Palacio de Bellas Artes, el Monumento a la Independencia (El Ángel) y el Palacio Legislativo.",
+                    "<strong>Saneamiento Urbano:</strong> El Gran Canal del Desagüe del Valle de México para resolver las inundaciones de la capital."
+                ]
+            },
+            social: {
+                badge: "Estructura Social",
+                badgeClass: "bg-rose-100 text-rose-800",
+                title: "Estructura Social",
+                subtitle: "Abismo extremo, esclavitud velada y represión obrera",
+                quote: "«La paz reina en la República, mas no la justicia social.»",
+                quoteAuthor: "Crítica social contemporánea",
+                description: "El notable desarrollo macroeconómico y tecnológico del Porfiriato se edificó sobre una de las estructuras sociales más injustas y opresivas de la historia nacional. La gran mayoría de la población —compuesta por campesinos indígenas, peones y obreros— carecía de derechos básicos y sufría jornadas laborales inhumanas y salarios de miseria.",
+                bullets: [
+                    "<strong>Polarización Social Absoluta:</strong> Una pequeña casta terrateniente adinerada y tecnócratas controlaban la riqueza frente a un 85% de población analfabeta y empobrecida.",
+                    "<strong>Huelgas de Cananea y Río Blanco:</strong> Descontentos reprimidos con brutalidad por el ejército mexicano que sembraron el descontento pre-revolucionario.",
+                    "<strong>Explotación Indígena:</strong> Deportación masiva de comunidades enteras para trabajar como esclavos virtuales en plantaciones de tabaco y henequén."
+                ]
+            },
+            haciendas: {
+                badge: "Social",
+                badgeClass: "bg-rose-100 text-rose-800",
+                title: "Las Haciendas Porfirianas",
+                subtitle: "El régimen feudal agrario",
+                quote: "«La tierra de México pertenece a un puñado de hacendados mientras millones de hombres la labran con sus lágrimas.»",
+                quoteAuthor: "Andrés Molina Enríquez",
+                description: "La Ley de Deslinde y Colonización agraria de 1883 despojó a comunidades indígenas de sus tierras comunales históricas. Éstas fueron devoradas por inmensas haciendas latifundistas. Alrededor del 90% de las comunidades campesinas del centro y sur de México perdieron sus tierras comunales, forzando a los campesinos a contratarse como peones.",
+                bullets: [
+                    "<strong>Latifundismo Extremo:</strong> Un puñado de familias y corporaciones nacionales y extranjeras poseían casi la totalidad de la tierra cultivable del país.",
+                    "<strong>El Peonaje acasillado:</strong> Trabajadores rurales que residían permanentemente dentro de los límites de las haciendas bajo el control absoluto del patrón.",
+                    "<strong>Desaparición del Ejido Comunal:</strong> Destrucción del ejido tradicional y marginación total del indígena de su sustento de vida histórico."
+                ]
+            },
+            raya: {
+                badge: "Social",
+                badgeClass: "bg-rose-100 text-rose-800",
+                title: "Tiendas de Raya",
+                subtitle: "La deuda perpetua como mecanismo de sometimiento",
+                quote: "«En la Tienda de Raya, el peón entra debiendo de joven y muere debiendo de viejo, heredando la deuda a sus hijos.»",
+                quoteAuthor: "Relato de Jornalero de Valle Nacional",
+                description: "Eran establecimientos comerciales de abastecimiento forzado propiedad del hacendado. Como a los peones no se les pagaba en moneda corriente, sino en vales o fichas válidas exclusivamente en estos expendios, se les imponían precios abusivos. Esto provocaba deudas impagables que se transmitían hereditariamente de generación en generación.",
+                bullets: [
+                    "<strong>Monopolio del Consumo:</strong> Prohibición estricta a los peones de comerciar o comprar víveres fuera de la tienda de la hacienda.",
+                    "<strong>Deudas Hereditarias Legales:</strong> El marco jurídico porfirista protegía al hacendado, permitiendo retener por la fuerza a cualquier trabajador con saldos deudores pendientes.",
+                    "<strong>Esclavitud de facto:</strong> El peón perdía completa libertad de tránsito y decisión, atado para siempre a la hacienda agrícola."
+                ]
+            },
+            desigualdad: {
+                badge: "Social",
+                badgeClass: "bg-rose-100 text-rose-800",
+                title: "La Desigualdad Extrema",
+                subtitle: "El contraste brutal del progreso",
+                quote: "«México es el país de las desigualdades. Acaso no existe otro en donde la diferencia de fortunas sea tan alarmante.»",
+                quoteAuthor: "Alexander von Humboldt (citado a fines de siglo)",
+                description: "El Porfiriato construyó dos realidades opuestas en un mismo territorio: el esplendor aristocrático de la Ciudad de México y el olvido absoluto de los campos. Las estadísticas de mortalidad infantiles eran de las más severas del mundo, la desnutrición era crónica y la mayor parte de los obreros carecía de cualquier protección jurídica ante accidentes.",
+                bullets: [
+                    "<strong>Analfabetismo Generalizado:</strong> Cerca del 84% de la población no sabía leer ni escribir a fines del porfiriato.",
+                    "<strong>Salud Pública Inexistente:</strong> Epidemias frecuentes y condiciones de vivienda deplorables e insalubres en asentamientos industriales y vecindades urbanas.",
+                    "<strong>Contraste Visual:</strong> Palacetes monumentales en el Paseo de la Reforma a metros de barrios paupérrimos desprovistos de agua y drenaje."
+                ]
+            },
+            conclusion: {
+                badge: "Análisis Final",
+                badgeClass: "bg-slate-800 text-amber-400",
+                title: "Influencia en la Modernización",
+                subtitle: "El legado ambivalente de El Porfiriato",
+                quote: "«La Revolución de 1910 no destruyó la obra material del Porfiriato; la arrebató de manos oligárquicas para ponerla al servicio del pueblo.»",
+                quoteAuthor: "Historiografía de la Revolución Mexicana",
+                description: "La herencia del Porfiriato es profundamente contrastante. Por un lado, legó al México moderno la red ferroviaria, los cimientos portuarios, las primeras industrias energéticas y un erario público unificado. Por otro lado, la asfixiante injusticia social, la total exclusión democrática y la entrega de recursos a consorcios internacionales crearon la acumulación de tensión política y social que desató la primera gran revolución del siglo XX.",
+                bullets: [
+                    "<strong>Infraestructura Legada:</strong> Las vías de comunicación e industria establecidas sirvieron como la espina dorsal para la reconstrucción del México moderno.",
+                    "<strong>Detonante de 1910:</strong> Sin la acumulación de abusos agrarios, la cerrazón electoral y la represión a las libertades individuales, el levantamiento de Francisco I. Madero no habría encontrado el eco nacional masivo que derrocó la dictadura.",
+                    "<strong>Lección Histórica:</strong> Demostró que el progreso material sin justicia social, soberanía comunitaria y libertades civiles es insostenible en el largo plazo."
+                ]
+            }
+        };
+
+        // PRESENTATION STEP SEQUENCE
+        const presentationSteps = [
+            { id: "center-hub", key: "hub" },
+            { id: "branch-political", key: "political" },
+            { id: "sub-dictadura", key: "dictadura" },
+            { id: "sub-orden", key: "orden" },
+            { id: "sub-cientificos", key: "cientificos" },
+            { id: "branch-economic", key: "economic" },
+            { id: "sub-inversion", key: "inversion" },
+            { id: "sub-ferroviaria", key: "ferroviaria" },
+            { id: "sub-modernizacion", key: "modernizacion" },
+            { id: "branch-social", key: "social" },
+            { id: "sub-haciendas", key: "haciendas" },
+            { id: "sub-raya", key: "raya" },
+            { id: "sub-desigualdad", key: "desigualdad" },
+            { id: "conclusion-box", key: "conclusion" }
+        ];
+
+        let currentStepIndex = -1;
+        let isPresenting = false;
+        let activeHistoryKey = 'hub';
+        let currentAudio = null;
+        let isNarrating = false;
+
+        // CONNECTIONS DRAWER FUNCTION (DYNAMIC SVG DRAWING)
+        function drawConnections() {
+            const svg = document.getElementById('connections-svg');
+            if (!svg) return;
+            svg.innerHTML = ''; // Clear prior elements
+
+            const svgRect = svg.getBoundingClientRect();
+
+            function getCenterCoords(elId) {
+                const el = document.getElementById(elId);
+                if (!el) return null;
+                const rect = el.getBoundingClientRect();
+                return {
+                    x: rect.left - svgRect.left + rect.width / 2,
+                    y: rect.top - svgRect.top + rect.height / 2
+                };
+            }
+
+            // Central Hub -> Branches
+            const mainConnections = [
+                { from: 'center-hub', to: 'branch-political', color: '#3b82f6', width: 4 }, // Blue
+                { from: 'center-hub', to: 'branch-economic', color: '#10b981', width: 4 },  // Green
+                { from: 'center-hub', to: 'branch-social', color: '#f43f5e', width: 4 }     // Red
+            ];
+
+            // Branches -> Subs
+            const subConnections = [
+                { from: 'branch-political', to: 'sub-dictadura', color: '#93c5fd', width: 2 },
+                { from: 'branch-political', to: 'sub-orden', color: '#93c5fd', width: 2 },
+                { from: 'branch-political', to: 'sub-cientificos', color: '#93c5fd', width: 2 },
+
+                { from: 'branch-economic', to: 'sub-inversion', color: '#a7f3d0', width: 2 },
+                { from: 'branch-economic', to: 'sub-ferroviaria', color: '#a7f3d0', width: 2 },
+                { from: 'branch-economic', to: 'sub-modernizacion', color: '#a7f3d0', width: 2 },
+
+                { from: 'branch-social', to: 'sub-haciendas', color: '#fecdd3', width: 2 },
+                { from: 'branch-social', to: 'sub-raya', color: '#fecdd3', width: 2 },
+                { from: 'branch-social', to: 'sub-desigualdad', color: '#fecdd3', width: 2 }
+            ];
+
+            // Branches -> Conclusion Box at bottom (dashed convergence lines)
+            const convergenceConnections = [
+                { from: 'branch-political', to: 'conclusion-box', color: '#cbd5e1', width: 2, dashed: true },
+                { from: 'branch-economic', to: 'conclusion-box', color: '#cbd5e1', width: 2, dashed: true },
+                { from: 'branch-social', to: 'conclusion-box', color: '#cbd5e1', width: 2, dashed: true }
+            ];
+
+            function drawCurve(fromId, toId, strokeColor, strokeWidth, isDashed = false) {
+                const start = getCenterCoords(fromId);
+                const end = getCenterCoords(toId);
+                if (!start || !end) return;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                
+                // Beautiful organic bezier curves
+                const dx = end.x - start.x;
+                const dy = end.y - start.y;
+                const cx1 = start.x + dx * 0.5;
+                const cy1 = start.y;
+                const cx2 = start.x + dx * 0.5;
+                const cy2 = end.y;
+
+                const dValue = `M ${start.x} ${start.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${end.x} ${end.y}`;
+                
+                path.setAttribute('d', dValue);
+                path.setAttribute('stroke', strokeColor);
+                path.setAttribute('stroke-width', strokeWidth);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke-linecap', 'round');
+                path.setAttribute('opacity', '0.75');
+                
+                if (isDashed) {
+                    path.setAttribute('stroke-dasharray', '6,6');
+                }
+                svg.appendChild(path);
+            }
+
+            mainConnections.forEach(c => drawCurve(c.from, c.to, c.color, c.width));
+            subConnections.forEach(c => drawCurve(c.from, c.to, c.color, c.width));
+            convergenceConnections.forEach(c => drawCurve(c.from, c.to, c.color, c.width, c.dashed));
+        }
+
+        // API Configuration setup
+        function getApiKey() {
+            return localStorage.getItem('gemini_api_key') || '';
+        }
+
+        function saveApiKey() {
+            const key = document.getElementById('input-api-key').value.trim();
+            if (key) {
+                localStorage.setItem('gemini_api_key', key);
+                updateApiKeyStatus();
+                toggleApiKeyModal();
+            }
+        }
+
+        function clearApiKey() {
+            localStorage.removeItem('gemini_api_key');
+            document.getElementById('input-api-key').value = '';
+            updateApiKeyStatus();
+            toggleApiKeyModal();
+        }
+
+        function updateApiKeyStatus() {
+            const hasKey = getApiKey() !== '';
+            document.getElementById('api-key-status').innerText = hasKey ? "Llave Personalizada" : "Gemini IA Auténtica";
+        }
+
+        function toggleApiKeyModal() {
+            const modal = document.getElementById('modal-api-key');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                document.getElementById('input-api-key').value = getApiKey();
+            }
+        }
+
+        // Tab Management within Drawer
+        function switchAiTab(tabName) {
+            // Remove active classes
+            document.getElementById('tab-btn-details').classList.remove('ai-tab-active');
+            document.getElementById('tab-btn-chat').classList.remove('ai-tab-active');
+            document.getElementById('tab-btn-quiz').classList.remove('ai-tab-active');
+            
+            // Hide panes
+            document.getElementById('pane-details').classList.add('hidden');
+            document.getElementById('pane-chat').classList.add('hidden');
+            document.getElementById('pane-quiz').classList.add('hidden');
+
+            // Set active
+            document.getElementById(`tab-btn-${tabName}`).classList.add('ai-tab-active');
+            document.getElementById(`pane-${tabName}`).classList.remove('hidden');
+
+            // Specific tab initializers
+            if (tabName === 'chat') {
+                const data = historyData[activeHistoryKey];
+                document.getElementById('chat-topic-highlight').innerText = data.title;
+            } else if (tabName === 'quiz') {
+                const data = historyData[activeHistoryKey];
+                document.getElementById('quiz-btn-topic').innerText = data.title;
+                // Auto generate first quiz if container is hidden
+                if (document.getElementById('quiz-question-container').classList.contains('hidden')) {
+                    generateAiQuiz();
+                }
+            }
+        }
+
+        // FEATURE 1: AI HISTORIAN CHAT
+        async function sendChatMessage() {
+            const inputEl = document.getElementById('chat-input');
+            const messageText = inputEl.value.trim();
+            if (!messageText) return;
+
+            // Render User Bubble
+            renderBubble(messageText, 'user');
+            inputEl.value = '';
+
+            // Render Loader Bubble
+            const loaderId = 'ai-loader-' + Date.now();
+            renderBubble('<div class="inline-block animate-pulse">Escribiendo respuesta histórica...</div>', 'ai', loaderId);
+
+            const activeTopic = historyData[activeHistoryKey];
+            const systemPrompt = `Actúa como un renombrado historiador e investigador especializado en la era del Porfiriato mexicano (1876-1911). Te encuentras dialogando con un estudiante de bachillerato de Prepa en Línea-SEP. Responde con gran rigor histórico pero de forma pedagógica, amena y concisa (máximo 2 párrafos). Enfoca tu respuesta asociándola directamente con el tema actual: "${activeTopic.title} - ${activeTopic.subtitle}".`;
+            const userPrompt = `Con respecto a la sección de "${activeTopic.title}", responde lo siguiente de forma detallada pero fácil de entender: ${messageText}`;
+
+            try {
+                const responseText = await callGeminiText(userPrompt, systemPrompt);
+                document.getElementById(loaderId).innerText = responseText;
+            } catch (err) {
+                console.error(err);
+                document.getElementById(loaderId).innerText = "Hubo un problema de conexión con el Historiador IA. Por favor, vuelve a intentarlo.";
+            }
+        }
+
+        function handleChatKey(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        function renderBubble(content, sender, id = null) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = "flex gap-2.5 items-start";
+            
+            const isAi = sender === 'ai';
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-lg ${isAi ? 'bg-amber-50 border border-amber-200 text-amber-800' : 'bg-slate-200 text-slate-700'} flex items-center justify-center text-xs font-bold shrink-0">
+                    ${isAi ? 'IA' : 'Tú'}
+                </div>
+                <div ${id ? `id="${id}"` : ''} class="${isAi ? 'chat-bubble-ai' : 'chat-bubble-user'} p-3 rounded-xl text-xs max-w-[85%] leading-relaxed whitespace-pre-line">
+                    ${content}
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // FEATURE 2: EVALUADOR/QUIZ INTERACTIVO IA (Structured Responses)
+        async function generateAiQuiz() {
+            const loading = document.getElementById('quiz-loading-spinner');
+            const container = document.getElementById('quiz-question-container');
+            const feedback = document.getElementById('quiz-feedback');
+            
+            loading.classList.remove('hidden');
+            container.classList.add('hidden');
+            feedback.classList.add('hidden');
+
+            const activeTopic = historyData[activeHistoryKey];
+            const systemPrompt = "Eres un evaluador académico experto en la historia de México del siglo XIX. Debes generar un reactivo de opción múltiple con 3 opciones sobre la temática solicitada. El output DEBE ser un objeto JSON que siga rigurosamente el esquema definido, sin comentarios ni marcas añadidas.";
+            const userPrompt = `Crea una pregunta de opción múltiple muy interesante, con tres incisos para elegir, acerca de la temática del Porfiriato: "${activeTopic.title} - ${activeTopic.subtitle}" (${activeTopic.description}). Explica por qué el inciso correcto lo es en el campo 'explanation' en español.`;
+
+            const schema = {
+                type: "OBJECT",
+                properties: {
+                    question: { type: "STRING", description: "Pregunta del examen" },
+                    options: { 
+                        type: "ARRAY", 
+                        items: { type: "STRING" },
+                        description: "Arreglo con exactamente 3 opciones (p. ej., ['A) Opción 1', 'B) Opción 2', 'C) Opción 3'])" 
+                    },
+                    answerIndex: { type: "INTEGER", description: "Índice de la respuesta correcta de 0 a 2" },
+                    explanation: { type: "STRING", description: "Breve explicación detallada de por qué es la opción correcta" }
+                },
+                required: ["question", "options", "answerIndex", "explanation"]
+            };
+
+            try {
+                const responseJson = await callGeminiStructured(userPrompt, systemPrompt, schema);
+                const quizData = JSON.parse(responseJson);
+
+                document.getElementById('quiz-question-text').innerText = quizData.question;
+                
+                const optionsBox = document.getElementById('quiz-options-container');
+                optionsBox.innerHTML = '';
+
+                quizData.options.forEach((option, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full text-left p-3.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-xl text-xs font-semibold text-slate-800 transition flex items-center justify-between";
+                    btn.innerHTML = `<span>${option}</span> <i class="fa-regular fa-circle text-slate-300"></i>`;
+                    btn.onclick = () => selectQuizAnswer(btn, index, quizData.answerIndex, quizData.explanation);
+                    optionsBox.appendChild(btn);
+                });
+
+                loading.classList.add('hidden');
+                container.classList.remove('hidden');
+            } catch (err) {
+                console.error(err);
+                loading.classList.add('hidden');
+                alert("No se pudo estructurar el desafío interactivo con la IA. Prueba de nuevo en unos segundos.");
+            }
+        }
+
+        function selectQuizAnswer(selectedBtn, selectedIdx, correctIdx, explanation) {
+            const optionsBox = document.getElementById('quiz-options-container');
+            const buttons = optionsBox.querySelectorAll('button');
+            const feedback = document.getElementById('quiz-feedback');
+
+            // Disable all buttons from double selection
+            buttons.forEach((btn, idx) => {
+                btn.disabled = true;
+                btn.className = btn.className.replace('hover:bg-indigo-50', '').replace('hover:border-indigo-300', '');
+                
+                if (idx === correctIdx) {
+                    btn.classList.add('bg-emerald-50', 'border-emerald-300', 'text-emerald-950');
+                    btn.querySelector('i').className = "fa-solid fa-circle-check text-emerald-600";
+                } else if (idx === selectedIdx) {
+                    btn.classList.add('bg-rose-50', 'border-rose-300', 'text-rose-950');
+                    btn.querySelector('i').className = "fa-solid fa-circle-xmark text-rose-600";
+                }
+            });
+
+            feedback.classList.remove('hidden');
+            if (selectedIdx === correctIdx) {
+                feedback.className = "p-4 rounded-xl text-xs leading-relaxed bg-emerald-50 text-emerald-950 border border-emerald-200 mt-2";
+                feedback.innerHTML = `<strong>¡Excelente logro! Respuesta Correcta.</strong><br><br>${explanation}`;
+            } else {
+                feedback.className = "p-4 rounded-xl text-xs leading-relaxed bg-rose-50 text-rose-950 border border-rose-200 mt-2";
+                feedback.innerHTML = `<strong>¡Oh, estuviste cerca! Sigue aprendiendo.</strong><br><br>La respuesta idónea era la marcada en verde.<br><br>${explanation}`;
+            }
+        }
+
+        // FEATURE 3: NARRADOR HISTÓRICO CON INTELIGENCIA ARTIFICIAL (TTS)
+        async function speakDescription() {
+            if (isNarrating) {
+                stopSpeech();
+                return;
+            }
+
+            const btn = document.getElementById('btn-narrate');
+            const icon = document.getElementById('narrate-icon');
+            const textEl = document.getElementById('narrate-text');
+
+            isNarrating = true;
+            btn.classList.add('pulse-audio', 'bg-red-700', 'hover:bg-red-800');
+            icon.className = "fa-solid fa-circle-stop animate-spin-slow";
+            textEl.innerText = "Detener Narrador";
+
+            const activeTopic = historyData[activeHistoryKey];
+            const textToSpeak = `Sección de ${activeTopic.title}. ${activeTopic.subtitle}. Análisis Crítico: ${activeTopic.description}`;
+
+            const payload = {
+                contents: [{
+                    parts: [{ text: `Lee con tono formal, reflexivo y de un historiador profesional el siguiente extracto histórico. Pausa adecuadamente al leer: ${textToSpeak}` }]
+                }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: { voiceName: "Sadaltager" }
+                        }
+                    }
+                }
+            };
+
+            const apiKey = getApiKey();
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData);
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+
+                    currentAudio = new Audio(audioUrl);
+                    currentAudio.onended = stopSpeech;
+                    currentAudio.play();
+                } else {
+                    throw new Error("No se pudo extraer la pista de audio");
+                }
+            } catch (err) {
+                console.error(err);
+                stopSpeech();
+                alert("Lo sentimos, no se pudo generar el sintetizador de audio de la IA en este momento.");
+            }
+        }
+
+        function stopSpeech() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            isNarrating = false;
+            const btn = document.getElementById('btn-narrate');
+            const icon = document.getElementById('narrate-icon');
+            const textEl = document.getElementById('narrate-text');
+
+            if (btn) {
+                btn.classList.remove('pulse-audio', 'bg-red-700', 'hover:bg-red-800');
+                icon.className = "fa-solid fa-volume-high";
+                textEl.innerText = "Narrar";
+            }
+        }
+
+        // Audio conversion helpers
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcm16, sampleRate) {
+            const buffer = new ArrayBuffer(44 + pcm16.length * 2);
+            const view = new DataView(buffer);
+
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + pcm16.length * 2, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, pcm16.length * 2, true);
+
+            for (let i = 0; i < pcm16.length; i++) {
+                view.setInt16(44 + i * 2, pcm16[i], true);
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        // FEATURE 4: GENERAR POSTAL/IMAGEN VINTAGE DE LA ERA (Imagen 4)
+        async function generatePostalArt() {
+            toggleArtworkModal();
+            const loader = document.getElementById('artwork-loading');
+            const img = document.getElementById('generated-artwork');
+            const downloadBtn = document.getElementById('btn-download-art');
+            const infoText = document.getElementById('art-prompt-info');
+
+            loader.classList.remove('hidden');
+            img.classList.add('hidden');
+            downloadBtn.disabled = true;
+            downloadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const activeTopic = historyData[activeHistoryKey];
+            const artPrompt = `Grabado antiguo de estilo porfiriano del siglo XIX mexicano, representando: ${activeTopic.title}. Estilo grabado de época, sepia, vintage, líneas de periódico clásico, daguerrotipo histórico.`;
+            infoText.innerText = `Tema: "${activeTopic.title}"`;
+
+            const payload = { 
+                instances: { prompt: artPrompt }, 
+                parameters: { "sampleCount": 1 } 
+            };
+            const apiKey = getApiKey();
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                
+                if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                    img.src = imageUrl;
+                    img.classList.remove('hidden');
+                    loader.classList.add('hidden');
+                    downloadBtn.disabled = false;
+                    downloadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    throw new Error("No se recibieron datos de imagen en el formato esperado.");
+                }
+            } catch (err) {
+                console.error(err);
+                loader.classList.add('hidden');
+                toggleArtworkModal();
+                alert("No se pudo renderizar la postal de época mediante Imagen 4.0. Prueba de nuevo en unos momentos.");
+            }
+        }
+
+        function toggleArtworkModal() {
+            const modal = document.getElementById('modal-artwork');
+            modal.classList.toggle('hidden');
+        }
+
+        function downloadGeneratedArt() {
+            const img = document.getElementById('generated-artwork');
+            if (!img.src) return;
+
+            const link = document.createElement('a');
+            link.href = img.src;
+            link.download = `porfiriato_${activeHistoryKey}_postal.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Robust fetch query wrappers for LLM
+        async function callGeminiText(prompt, systemInstruction = '', retries = 3, delay = 1000) {
+            const apiKey = getApiKey();
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }]
+            };
+            if (systemInstruction) {
+                payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+            }
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`HTTP Error Status: ${response.status}`);
+                    
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "No se pudo generar respuesta.";
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2; // Exponential backoff
+                }
+            }
+        }
+
+        async function callGeminiStructured(prompt, systemInstruction = '', jsonSchema, retries = 3, delay = 1000) {
+            const apiKey = getApiKey();
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: jsonSchema
+                }
+            };
+            if (systemInstruction) {
+                payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+            }
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`HTTP Error Status: ${response.status}`);
+                    
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        // DRAWER INTERACTION
+        function openDetails(key) {
+            // Keep track of active key
+            activeHistoryKey = key;
+            
+            // Stop any ongoing narration immediately
+            stopSpeech();
+
+            const data = historyData[key];
+            if (!data) return;
+
+            // Reset tab views back to Details pane as standard
+            switchAiTab('details');
+
+            // Update DOM inside Drawer
+            const badge = document.getElementById('drawer-badge');
+            badge.innerText = data.badge;
+            badge.className = `px-2 py-0.5 text-[9px] font-bold rounded-md tracking-wider uppercase ${data.badgeClass}`;
+            
+            document.getElementById('drawer-title').innerText = data.title;
+            document.getElementById('drawer-subtitle').innerText = data.subtitle;
+            document.getElementById('drawer-quote').innerText = data.quote;
+            document.getElementById('drawer-quote-author').innerText = data.quoteAuthor;
+            document.getElementById('drawer-description').innerHTML = data.description;
+            
+            // Clear prior chat logs
+            const defaultChatHighlight = document.getElementById('chat-topic-highlight');
+            if (defaultChatHighlight) defaultChatHighlight.innerText = data.title;
+            const chatMessages = document.getElementById('chat-messages');
+            if (chatMessages) {
+                chatMessages.innerHTML = `
+                    <div class="flex gap-2.5 items-start">
+                        <div class="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-center text-xs font-bold">IA</div>
+                        <div class="chat-bubble-ai p-3 rounded-xl text-xs max-w-[85%] leading-relaxed">
+                            ¡Saludos! Soy tu asesor histórico interactivo. ¿Tienes alguna pregunta en particular sobre <strong>${data.title}</strong>? Pregúntame con confianza.
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Reset active quiz
+            const quizContainer = document.getElementById('quiz-question-container');
+            const quizFeedback = document.getElementById('quiz-feedback');
+            if (quizContainer) quizContainer.classList.add('hidden');
+            if (quizFeedback) quizFeedback.classList.add('hidden');
+
+            // Build bullets lists dynamically
+            const listContainer = document.getElementById('drawer-bullets');
+            listContainer.innerHTML = '';
+            data.bullets.forEach(bulletText => {
+                const li = document.createElement('li');
+                li.className = "flex items-start gap-2.5 text-xs text-slate-600 leading-relaxed";
+                li.innerHTML = `
+                    <span class="text-amber-600 mt-0.5 shrink-0"><i class="fa-solid fa-bookmark"></i></span>
+                    <span>${bulletText}</span>
+                `;
+                listContainer.appendChild(li);
+            });
+
+            // Slide out the drawer panel
+            document.getElementById('slide-drawer').classList.remove('translate-x-full');
+            document.getElementById('drawer-backdrop').classList.remove('hidden');
+            
+            // Visual feedback: Highlight matching node visually
+            clearAllNodeHighlights();
+            const matchingNode = document.querySelector(`[onclick*="openDetails('${key}')"]`);
+            if (matchingNode) {
+                matchingNode.classList.add('ring-4', 'ring-amber-500/50', 'scale-[1.02]');
+            }
+        }
+
+        function closeDrawer() {
+            // Stop TTS on closing
+            stopSpeech();
+            document.getElementById('slide-drawer').classList.add('translate-x-full');
+            document.getElementById('drawer-backdrop').classList.add('hidden');
+            if (!isPresenting) {
+                clearAllNodeHighlights();
+            }
+        }
+
+        function clearAllNodeHighlights() {
+            document.querySelectorAll('.node-interactive').forEach(node => {
+                node.classList.remove('ring-4', 'ring-amber-500/50', 'ring-blue-500/50', 'ring-emerald-500/50', 'ring-rose-500/50', 'scale-[1.02]', 'opacity-100', 'opacity-30');
+            });
+        }
+
+        // PRESENTATION MODE LOGIC (STEP-BY-STEP EXPOSITION TOOL)
+        function startPresentation() {
+            isPresenting = true;
+            currentStepIndex = 0;
+            
+            // Show HUD
+            document.getElementById('presentation-hud').classList.remove('hidden');
+            
+            // Focus on first step
+            applyPresentationStep();
+        }
+
+        function stopPresentation() {
+            isPresenting = false;
+            currentStepIndex = -1;
+            document.getElementById('presentation-hud').classList.add('hidden');
+            clearAllNodeHighlights();
+            closeDrawer();
+        }
+
+        function nextStep() {
+            if (!isPresenting) return;
+            if (currentStepIndex < presentationSteps.length - 1) {
+                currentStepIndex++;
+                applyPresentationStep();
+            } else {
+                // Done! Show celebration or synthesis
+                openDetails('conclusion');
+                stopPresentation();
+            }
+        }
+
+        function prevStep() {
+            if (!isPresenting) return;
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                applyPresentationStep();
+            }
+        }
+
+        function applyPresentationStep() {
+            const step = presentationSteps[currentStepIndex];
+            const nodeEl = document.getElementById(step.id);
+            
+            if (!nodeEl) return;
+            
+            // Highlight the node
+            clearAllNodeHighlights();
+            
+            // Dim out all other nodes to create a spotlight effect
+            document.querySelectorAll('.node-interactive').forEach(node => {
+                if (node.id !== step.id) {
+                    node.classList.add('opacity-30');
+                } else {
+                    node.classList.add('opacity-100', 'ring-4', 'ring-amber-500', 'scale-105');
+                    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+
+            // Update presentation control HUD text
+            document.getElementById('pres-step-num').innerText = currentStepIndex + 1;
+            const data = historyData[step.key];
+            document.getElementById('pres-step-title').innerText = data.title;
+
+            // Automatically open detail drawer side panel for study
+            openDetails(step.key);
+        }
+
+        function resetView() {
+            stopPresentation();
+            closeDrawer();
+            clearAllNodeHighlights();
+            drawConnections();
+        }
+
+        // WINDOW LOAD AND RESIZE TRIGGERS
+        window.addEventListener('load', () => {
+            // Check customized api keys
+            updateApiKeyStatus();
+            // Draw initial paths
+            setTimeout(drawConnections, 300);
+        });
+
+        window.addEventListener('resize', () => {
+            // Recalculate node centers to redraw connections accurately
+            drawConnections();
+        });
+    </script>
+</body>
+</html>
